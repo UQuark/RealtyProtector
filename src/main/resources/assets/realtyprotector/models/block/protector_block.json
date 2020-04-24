@@ -1,0 +1,7 @@
+{
+  "parent": "block/cube_top",
+  "textures": {
+    "top": "realtyprotector:block/protector_block_top",
+    "side": "realtyprotector:block/protector_block_side"
+  }
+}

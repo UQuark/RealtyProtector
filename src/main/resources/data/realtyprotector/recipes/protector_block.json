@@ -1,0 +1,29 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "#G#",
+    "RNY",
+    "###"
+  ],
+  "key": {
+    "#": {
+      "item": "minecraft:obsidian"
+    },
+    "G": {
+      "item": "minecraft:glass"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "N": {
+      "item": "minecraft:nether_star"
+    },
+    "Y": {
+      "item": "minecraft:redstone_torch"
+    }
+  },
+  "result": {
+    "item": "realtyprotector:protector_block",
+    "count": 1
+  }
+}

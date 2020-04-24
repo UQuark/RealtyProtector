@@ -16,6 +16,9 @@
 
   "environment": "*",
   "entrypoints": {
+    "main": [
+      "me.uquark.realtyprotector.RealtyProtector"
+    ],
     "server": [
       "me.uquark.realtyprotector.RealtyProtectorServer"
     ]
@@ -28,7 +31,7 @@
     "fabricloader": ">=0.7.4",
     "fabric": "*",
     "minecraft": "1.15.x",
-    "quarkcore": "0.1.x"
+    "quarkcore": "0.1.2"
   },
   "suggests": {
     "flamingo": "*"
