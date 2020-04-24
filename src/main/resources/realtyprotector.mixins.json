@@ -4,6 +4,7 @@
   "package": "me.uquark.realtyprotector.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "ServerWorldMixin"
   ],
   "client": [
   ],
