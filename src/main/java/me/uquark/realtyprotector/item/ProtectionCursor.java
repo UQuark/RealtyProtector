@@ -49,16 +49,20 @@ public class ProtectionCursor extends AbstractItem {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        if (user.isSneaking())
-            if (registerRegion(user)) {
+        String regionName = "Region";
+        if (user.isSneaking()) {
+            if (user.getMainHandStack().hasCustomName())
+                regionName = user.getMainHandStack().getName().asString();
+            if (registerRegion(user, regionName)) {
                 user.addChatMessage(new LiteralText("New region registered"), false);
                 user.getMainHandStack().decrement(1);
                 return TypedActionResult.success(user.getMainHandStack());
             }
+        }
         return TypedActionResult.fail(user.getMainHandStack());
     }
 
-    private boolean registerRegion(PlayerEntity player) {
+    private boolean registerRegion(PlayerEntity player, String name) {
         if (playerTable.get(player) == null)
             return false;
         if (playerTable.get(player).size() < 2)
@@ -68,8 +72,7 @@ public class ProtectionCursor extends AbstractItem {
         try {
             if (RealtyProtectorServer.INSTANCE == null)
                 return false;
-            RealtyProtectorServer.INSTANCE.regionManager.addRegion(pos1, pos2, player);
-            return true;
+            return (RealtyProtectorServer.INSTANCE.regionManager.addRegion(name, pos1, pos2, player, null) > 0);
         } catch (SQLException e) {
             e.printStackTrace();
             return false;
