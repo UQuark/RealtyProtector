@@ -3,121 +3,188 @@ package me.uquark.realtyprotector.data;
 import me.uquark.quarkcore.data.DatabaseProvider;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.Random;
+import java.util.Set;
 
 public class RegionManager {
-    private final Connection connection = DatabaseProvider.getConnection();
-    private final ArrayList<Region> regions = new ArrayList<>();
+    private final Connection connection = DatabaseProvider.getConnection("realtyprotector", "rp_user", "");
+    public static final int MAX_VOLUME = 250000;
 
-    private static class Region {
-        private final Box box;
-        private final UUID owner;
-        private final List<UUID> members;
-
-        public Region(int sx, int sy, int sz, int ex, int ey, int ez, String owner, String members) {
-            box = new Box(sx, sy, sz, ex, ey, ez);
-            this.owner = UUID.fromString(owner);
-            this.members = new ArrayList<>();
-            String[] memberUUID = members.split(":");
-            for (String member : memberUUID) {
-                try {
-                    UUID uuid = UUID.fromString(member);
-                    this.members.add(uuid);
-                } catch (Exception e) {
-                    // do nothing
-                }
-            }
-        }
-
-        public Region(BlockPos pos1, BlockPos pos2, UUID owner, List<UUID> members) {
-            box = new Box(pos1, pos2);
-            this.owner = owner;
-            this.members = members;
-        }
-
-        private boolean contains(BlockPos pos) {
-            return box.contains(pos.getX(), pos.getY(), pos.getZ());
-        }
-        public boolean hasPermission(PlayerEntity player, BlockPos pos) {
-            if (!contains(pos))
-                return true;
-            if (player.getUuid().equals(owner))
-                return true;
-            for (UUID member : members)
-                if (player.getUuid().equals(member))
-                    return true;
-            return false;
-        }
+    public enum RegionRegistrationResult {
+        OK,
+        Overlap,
+        TooBig,
+        Fail,
+        ClientIsNotEnabled,
+        NotEnoughPoints,
     }
 
     public RegionManager() throws SQLException {
-        reloadRegions();
     }
 
-    public boolean canPlayerModifyAt(PlayerEntity player, BlockPos pos) {
-        if (player.allowsPermissionLevel(4))
-            return true;
-        for (Region region : regions)
-            if (!region.hasPermission(player, pos))
-                return false;
-        return true;
-    }
-
-    public void addRegion(BlockPos pos1, BlockPos pos2, PlayerEntity owner) throws SQLException {
-        Region region = new Region(pos1, pos2, owner.getUuid(), new ArrayList<>());
-        regions.add(region);
-        Statement statement = null;
+    private boolean isMember(int regionId, String playerUUID) throws SQLException {
+        final String QUERY = "SELECT FROM membership WHERE (\"regionId\" = ?) and (\"playerUUID\" = CAST(? as UNIQUEIDENTIFIER))";
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
         try {
-            statement = connection.createStatement();
-            statement.execute(String.format(
-                "INSERT INTO realtyprotector_regions(sx, sy, sz, ex, ey, ez, owner, members) VALUES (%d, %d, %d, %d, %d, %d, '%s', '%s')",
-                pos1.getX(),
-                pos1.getY(),
-                pos1.getZ(),
-                pos2.getX(),
-                pos2.getY(),
-                pos2.getZ(),
-                owner.getUuidAsString(),
-                ""
-            ));
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, regionId);
+            statement.setString(2, playerUUID);
+
+            resultSet = statement.executeQuery();
+            return resultSet.next();
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             if (statement != null) statement.close();
+            if (resultSet != null) resultSet.close();
         }
+        return false;
     }
 
-    private void reloadRegions() throws SQLException {
-        Statement statement = null;
+    public boolean canPlayerModifyAt(PlayerEntity player, BlockPos pos) throws SQLException {
+        final String QUERY = "SELECT id, CAST(\"ownerUUID\" as char(36)) FROM region WHERE (? between x1 and x2) and (? between y1 and y2) and (? between z1 and z2)";
+        PreparedStatement statement = null;
         ResultSet resultSet = null;
         try {
-            statement = connection.createStatement();
-            resultSet = statement.executeQuery("SELECT * FROM realtyprotector_regions");
-            regions.clear();
-            while (resultSet.next()) {
-                int sx = resultSet.getInt(1);
-                int sy = resultSet.getInt(2);
-                int sz = resultSet.getInt(3);
-                int ex = resultSet.getInt(4);
-                int ey = resultSet.getInt(5);
-                int ez = resultSet.getInt(6);
-                String ownerUUID = resultSet.getString(7);
-                String membersUUID = resultSet.getString(8);
-                regions.add(new Region(sx, sy, sz, ex, ey, ez, ownerUUID, membersUUID));
-            }
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, pos.getX());
+            statement.setInt(2, pos.getY());
+            statement.setInt(3, pos.getZ());
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                int id = resultSet.getInt(1);
+                String uuid = resultSet.getString(2);
+                if (player.getUuidAsString().equals(uuid))
+                    return true;
+                return isMember(id, player.getUuidAsString());
+            } else
+                return true;
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             if (resultSet != null) resultSet.close();
             if (statement != null) statement.close();
+        }
+        return false;
+    }
+
+    private RegionRegistrationResult isValidRegion(int x1, int y1, int z1, int x2, int y2, int z2) throws SQLException {
+        final String QUERY = "SELECT id FROM region WHERE (? <= x2 and ? <= y2 and ? <= z2) and (? >= x1 and ? >= y1 and ? >= z1)";
+        int x = x2 - x1;
+        int y = y2 - y1;
+        int z = z2 - z1;
+        int volume = x * y * z;
+        if (volume > MAX_VOLUME)
+            return RegionRegistrationResult.TooBig;
+
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, x1);
+            statement.setInt(2, y1);
+            statement.setInt(3, z1);
+            statement.setInt(4, x2);
+            statement.setInt(5, y2);
+            statement.setInt(6, z2);
+            resultSet = statement.executeQuery();
+            if (resultSet.next())
+                return RegionRegistrationResult.Overlap;
+            return RegionRegistrationResult.OK;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (statement != null) statement.close();
+            if (resultSet != null) resultSet.close();
+        }
+        return RegionRegistrationResult.Fail;
+    }
+
+    private void addMembership(int regionId, Set<PlayerEntity> members) throws SQLException {
+        final String QUERY = "INSERT INTO membership(\"regionId\", \"playerUUID\") VALUES (?, CAST(? as UNIQUEIDENTIFIER))";
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, regionId);
+            for (PlayerEntity player : members) {
+                statement.setString(2, player.getUuidAsString());
+                statement.execute();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (statement != null) statement.close();
+        }
+    }
+
+    public RegionRegistrationResult registerRegion(String name, BlockPos pos1, BlockPos pos2, PlayerEntity owner, Set<PlayerEntity> members) throws SQLException {
+        final String INSERT_QUERY = "INSERT INTO region(x1, y1, z1, x2, y2, z2, \"ownerUUID\", name) VALUES (?, ?, ?, ?, ?, ?, CAST(? as UNIQUEIDENTIFIER), ?)";
+        final String SELECT_QUERY = "SELECT SCOPE_IDENTITY()";
+
+        int x1 = Math.min(pos1.getX(), pos2.getX());
+        int y1 = Math.min(pos1.getY(), pos2.getY());
+        int z1 = Math.min(pos1.getZ(), pos2.getZ());
+        int x2 = Math.max(pos1.getX(), pos2.getX());
+        int y2 = Math.max(pos1.getY(), pos2.getY());
+        int z2 = Math.max(pos1.getZ(), pos2.getZ());
+
+        RegionRegistrationResult regionRegistrationResult = isValidRegion(x1, y1, z1, x2, y2, z2);
+        if (regionRegistrationResult != RegionRegistrationResult.OK)
+            return regionRegistrationResult;
+
+        String ownerUUID = "00000000-0000-0000-0000-000000000000";
+        if (owner != null)
+            ownerUUID = owner.getUuidAsString();
+
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            statement = connection.prepareStatement(INSERT_QUERY);
+            statement.setInt(1, x1);
+            statement.setInt(2, y1);
+            statement.setInt(3, z1);
+            statement.setInt(4, x2);
+            statement.setInt(5, y2);
+            statement.setInt(6, z2);
+            statement.setString(7, ownerUUID);
+            statement.setString(8, name);
+            statement.execute();
+            statement.close();
+
+            statement = connection.prepareStatement(SELECT_QUERY);
+            resultSet = statement.executeQuery();
+            int regionId = -1;
+            if (resultSet.next())
+                regionId = resultSet.getInt(1);
+            else
+                return RegionRegistrationResult.Fail;
+            if (members != null)
+                addMembership(regionId, members);
+            return RegionRegistrationResult.OK;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (statement != null) statement.close();
+            if (resultSet != null) resultSet.close();
+        }
+        return RegionRegistrationResult.Fail;
+    }
+
+    public static void main(String[] args) throws SQLException {
+        RegionManager regionManager = new RegionManager();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            BlockPos pos1 = new BlockPos(random.nextInt(100), random.nextInt(100), random.nextInt(100));
+            BlockPos pos2 = new BlockPos(random.nextInt(100), random.nextInt(100), random.nextInt(100));
+            regionManager.registerRegion("Region", pos1, pos2, null, null);
         }
     }
 }
