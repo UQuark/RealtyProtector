@@ -9,5 +9,6 @@
   "message.realtyprotector.regions_overlap": "Selected region overlaps with an existing one",
   "message.realtyprotector.not_enough_points": "You must select 2 points to register region",
   "message.realtyprotector.client_is_not_enabled": "Region registration is available only on dedicated servers",
-  "message.realtyprotector.unknown_error": "An unknown error has occurred while registering region"
+  "message.realtyprotector.unknown_error": "An unknown error has occurred while registering region",
+  "message.realtyprotector.player_added": "%s added to region as member"
 }

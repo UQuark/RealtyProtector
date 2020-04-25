@@ -8,8 +8,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.List;
 import java.util.Random;
+import java.util.Set;
 
 public class RegionManager {
     private final Connection connection = DatabaseProvider.getConnection("realtyprotector", "rp_user", "");
@@ -108,11 +108,24 @@ public class RegionManager {
         return RegionRegistrationResult.Fail;
     }
 
-    private void addMembership(int regionId, List<PlayerEntity> members) {
-
+    private void addMembership(int regionId, Set<PlayerEntity> members) throws SQLException {
+        final String QUERY = "INSERT INTO membership(\"regionId\", \"playerUUID\") VALUES (?, CAST(? as UNIQUEIDENTIFIER))";
+        PreparedStatement statement = null;
+        try {
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, regionId);
+            for (PlayerEntity player : members) {
+                statement.setString(2, player.getUuidAsString());
+                statement.execute();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (statement != null) statement.close();
+        }
     }
 
-    public RegionRegistrationResult registerRegion(String name, BlockPos pos1, BlockPos pos2, PlayerEntity owner, List<PlayerEntity> members) throws SQLException {
+    public RegionRegistrationResult registerRegion(String name, BlockPos pos1, BlockPos pos2, PlayerEntity owner, Set<PlayerEntity> members) throws SQLException {
         final String INSERT_QUERY = "INSERT INTO region(x1, y1, z1, x2, y2, z2, \"ownerUUID\", name) VALUES (?, ?, ?, ?, ?, ?, CAST(? as UNIQUEIDENTIFIER), ?)";
         final String SELECT_QUERY = "SELECT SCOPE_IDENTITY()";
 
