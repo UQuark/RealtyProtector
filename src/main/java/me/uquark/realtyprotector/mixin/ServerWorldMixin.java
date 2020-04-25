@@ -8,6 +8,7 @@ import net.minecraft.server.PlayerManager;
 import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.LiteralText;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -35,7 +36,7 @@ public abstract class ServerWorldMixin {
         if (canModify)
             info.setReturnValue(true);
         else {
-            player.addChatMessage(new LiteralText("This region is protected"), false);
+            player.addChatMessage(new TranslatableText("message.realtyprotector.region_protected"), false);
             info.setReturnValue(false);
         }
     }

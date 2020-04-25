@@ -10,6 +10,7 @@ import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
 import net.minecraft.text.LiteralText;
+import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.TypedActionResult;
@@ -40,10 +41,10 @@ public class ProtectionCursor extends AbstractItem {
             positions.clear();
         switch (positions.size()) {
             case 0:
-                context.getPlayer().addChatMessage(new LiteralText("First position set"), false);
+                context.getPlayer().addChatMessage(new TranslatableText("message.realtyprotector.first_position_set"), false);
                 break;
             case 1:
-                context.getPlayer().addChatMessage(new LiteralText("Second position set"), false);
+                context.getPlayer().addChatMessage(new TranslatableText("message.realtyprotector.second_position_set"), false);
                 break;
         }
         positions.add(context.getBlockPos());
@@ -58,23 +59,23 @@ public class ProtectionCursor extends AbstractItem {
                 regionName = user.getMainHandStack().getName().asString();
             switch (registerRegion(user, regionName)) {
                 case OK:
-                    user.addChatMessage(new LiteralText("New region registered"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.new_region_registered"), false);
                     user.getMainHandStack().decrement(1);
                     return TypedActionResult.success(user.getMainHandStack());
                 case TooBig:
-                    user.addChatMessage(new LiteralText("Selected region is too big (more than " + RegionManager.MAX_VOLUME + ")"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.too_big_region", RegionManager.MAX_VOLUME), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case Overlap:
-                    user.addChatMessage(new LiteralText("Selected region overlaps with an existing one"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.regions_overlap"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case NotEnoughPoints:
-                    user.addChatMessage(new LiteralText("You must select 2 points to register region"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.not_enough_points"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case ClientIsNotEnabled:
-                    user.addChatMessage(new LiteralText("Region registration is available only on dedicated servers"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.client_is_not_enabled"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case Fail:
-                    user.addChatMessage(new LiteralText("An unknown error has occurred while registering region"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.unknown_error"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
             }
         }
