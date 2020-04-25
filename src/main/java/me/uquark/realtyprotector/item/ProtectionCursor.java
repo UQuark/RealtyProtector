@@ -30,7 +30,7 @@ public class ProtectionCursor extends AbstractItem {
     }
 
     public ProtectionCursor() {
-        super(RealtyProtector.modid, "protection_cursor", new Item.Settings().maxCount(1).group(ItemGroup.TOOLS));
+        super(RealtyProtector.modid, "protection_cursor", new Item.Settings().maxCount(1).group(ItemGroup.TOOLS).maxDamage(0));
     }
 
     @Override
@@ -77,16 +77,15 @@ public class ProtectionCursor extends AbstractItem {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        String regionName = "Region";
+        String regionName = "Unnamed";
         if (user.isSneaking() && !world.isClient) {
             if (user.getMainHandStack().hasCustomName())
                 regionName = user.getMainHandStack().getName().asString();
-            RegionManager.RegionRegistrationResult result = registerRegion(user, regionName);
-            playerTable.remove(user);
-            switch (result) {
+            switch (registerRegion(user, regionName)) {
                 case OK:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.new_region_registered"), false);
+                    user.addChatMessage(new TranslatableText("message.realtyprotector.region_registered", regionName), false);
                     user.getMainHandStack().decrement(1);
+                    playerTable.remove(user);
                     return TypedActionResult.success(user.getMainHandStack());
                 case TooBig:
                     user.addChatMessage(new TranslatableText("message.realtyprotector.too_big_region", RegionManager.MAX_VOLUME), false);
@@ -113,7 +112,7 @@ public class ProtectionCursor extends AbstractItem {
             return RegionManager.RegionRegistrationResult.ClientIsNotEnabled;
         ProtectionCursorParameters parameters = playerTable.get(player);
         if (parameters == null)
-            return RegionManager.RegionRegistrationResult.Fail;
+            parameters = new ProtectionCursorParameters();
         if (parameters.positions.size() < 2)
             return RegionManager.RegionRegistrationResult.NotEnoughPoints;
         BlockPos pos1 = playerTable.get(player).positions.get(0);

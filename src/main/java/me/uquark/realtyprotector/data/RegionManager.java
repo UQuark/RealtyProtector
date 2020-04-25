@@ -3,13 +3,16 @@ package me.uquark.realtyprotector.data;
 import me.uquark.quarkcore.data.DatabaseProvider;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 
 public class RegionManager {
     private final Connection connection = DatabaseProvider.getConnection("realtyprotector", "rp_user", "");
@@ -22,6 +25,30 @@ public class RegionManager {
         Fail,
         ClientIsNotEnabled,
         NotEnoughPoints,
+    }
+
+    public enum RegionDeletionResult {
+        OK,
+        NotOwner,
+        NoRegion,
+        ClientIsNotEnabled,
+        Fail,
+    }
+
+    public static class RegionInfo {
+        public final int id;
+        public final Box box;
+        public final String name;
+        public final UUID owner;
+        public final List<UUID> members;
+
+        public RegionInfo(int id, Box box, String name, UUID owner, List<UUID> members) {
+            this.id = id;
+            this.box = box;
+            this.name = name;
+            this.owner = owner;
+            this.members = members;
+        }
     }
 
     public RegionManager() throws SQLException {
@@ -47,8 +74,44 @@ public class RegionManager {
         return false;
     }
 
+    public RegionInfo getRegionInfo(BlockPos pos) throws SQLException {
+        final String QUERY = "SELECT id, x1, y1, z1, x2, y2, z2, CAST(\"ownerUUID\" as char(36)), name FROM region WHERE (? between x1 and x2) and (? between y1 and y2) and (? between z1 and z2)";
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, pos.getX());
+            statement.setInt(2, pos.getY());
+            statement.setInt(3, pos.getZ());
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                int id = resultSet.getInt(1);
+                int x1 = resultSet.getInt(2);
+                int y1 = resultSet.getInt(3);
+                int z1 = resultSet.getInt(4);
+                int x2 = resultSet.getInt(5);
+                int y2 = resultSet.getInt(6);
+                int z2 = resultSet.getInt(7);
+                String uuid = resultSet.getString(8);
+                String name = resultSet.getString(9);
+                return new RegionInfo(id, new Box(x1, y1, z1, x2, y2, z2), name, UUID.fromString(uuid), null);
+            } else
+                return null;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (resultSet != null) resultSet.close();
+            if (statement != null) statement.close();
+        }
+        return null;
+    }
+
     public boolean canPlayerModifyAt(PlayerEntity player, BlockPos pos) throws SQLException {
         final String QUERY = "SELECT id, CAST(\"ownerUUID\" as char(36)) FROM region WHERE (? between x1 and x2) and (? between y1 and y2) and (? between z1 and z2)";
+        if (player.allowsPermissionLevel(3))
+            return true;
         PreparedStatement statement = null;
         ResultSet resultSet = null;
         try {
@@ -176,6 +239,42 @@ public class RegionManager {
             if (resultSet != null) resultSet.close();
         }
         return RegionRegistrationResult.Fail;
+    }
+
+    public RegionDeletionResult deleteRegion(BlockPos pos, PlayerEntity player) throws SQLException {
+        final String SELECT_QUERY = "SELECT id, CAST(\"ownerUUID\" as char(36)) FROM region WHERE (? between x1 and x2) and (? between y1 and y2) and (? between z1 and z2)";
+        final String DELETE_QUERY = "DELETE FROM region WHERE id = ?";
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            statement = connection.prepareStatement(SELECT_QUERY);
+            statement.setInt(1, pos.getX());
+            statement.setInt(2, pos.getY());
+            statement.setInt(3, pos.getZ());
+
+            resultSet = statement.executeQuery();
+
+            if (resultSet.next()) {
+                int id = resultSet.getInt(1);
+                String uuid = resultSet.getString(2);
+                if (player.getUuidAsString().equals(uuid) || player.allowsPermissionLevel(3)) {
+                    resultSet.close();
+                    statement.close();
+                    statement = connection.prepareStatement(DELETE_QUERY);
+                    statement.setInt(1, id);
+                    statement.execute();
+                    return RegionDeletionResult.OK;
+                } else
+                    return RegionDeletionResult.NotOwner;
+            } else
+                return RegionDeletionResult.NoRegion;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (resultSet != null) resultSet.close();
+            if (statement != null) statement.close();
+        }
+        return RegionDeletionResult.Fail;
     }
 
     public static void main(String[] args) throws SQLException {

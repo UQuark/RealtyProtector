@@ -9,5 +9,6 @@ public class RealtyProtector implements ModInitializer {
     @Override
     public void onInitialize() {
         Items.PROTECTION_CURSOR.register();
+        Items.DELETION_CURSOR.register();
     }
 }
