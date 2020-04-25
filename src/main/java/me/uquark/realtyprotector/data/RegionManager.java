@@ -9,9 +9,20 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Random;
 
 public class RegionManager {
     private final Connection connection = DatabaseProvider.getConnection("realtyprotector", "rp_user", "");
+    public static final int MAX_VOLUME = 250000;
+
+    public enum RegionRegistrationResult {
+        OK,
+        Overlap,
+        TooBig,
+        Fail,
+        ClientIsNotEnabled,
+        NotEnoughPoints,
+    }
 
     public RegionManager() throws SQLException {
     }
@@ -65,11 +76,43 @@ public class RegionManager {
         return false;
     }
 
+    private RegionRegistrationResult isValidRegion(int x1, int y1, int z1, int x2, int y2, int z2) throws SQLException {
+        final String QUERY = "SELECT id FROM region WHERE (? <= x2 and ? <= y2 and ? <= z2) and (? >= x1 and ? >= y1 and ? >= z1)";
+        int x = x2 - x1;
+        int y = y2 - y1;
+        int z = z2 - z1;
+        int volume = x * y * z;
+        if (volume > MAX_VOLUME)
+            return RegionRegistrationResult.TooBig;
+
+        PreparedStatement statement = null;
+        ResultSet resultSet = null;
+        try {
+            statement = connection.prepareStatement(QUERY);
+            statement.setInt(1, x1);
+            statement.setInt(2, y1);
+            statement.setInt(3, z1);
+            statement.setInt(4, x2);
+            statement.setInt(5, y2);
+            statement.setInt(6, z2);
+            resultSet = statement.executeQuery();
+            if (resultSet.next())
+                return RegionRegistrationResult.Overlap;
+            return RegionRegistrationResult.OK;
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            if (statement != null) statement.close();
+            if (resultSet != null) resultSet.close();
+        }
+        return RegionRegistrationResult.Fail;
+    }
+
     private void addMembership(int regionId, List<PlayerEntity> members) {
 
     }
 
-    public int addRegion(String name, BlockPos pos1, BlockPos pos2, PlayerEntity owner, List<PlayerEntity> members) throws SQLException {
+    public RegionRegistrationResult registerRegion(String name, BlockPos pos1, BlockPos pos2, PlayerEntity owner, List<PlayerEntity> members) throws SQLException {
         final String INSERT_QUERY = "INSERT INTO region(x1, y1, z1, x2, y2, z2, \"ownerUUID\", name) VALUES (?, ?, ?, ?, ?, ?, CAST(? as UNIQUEIDENTIFIER), ?)";
         final String SELECT_QUERY = "SELECT SCOPE_IDENTITY()";
 
@@ -79,7 +122,14 @@ public class RegionManager {
         int x2 = Math.max(pos1.getX(), pos2.getX());
         int y2 = Math.max(pos1.getY(), pos2.getY());
         int z2 = Math.max(pos1.getZ(), pos2.getZ());
-        String ownerUUID = owner.getUuidAsString();
+
+        RegionRegistrationResult regionRegistrationResult = isValidRegion(x1, y1, z1, x2, y2, z2);
+        if (regionRegistrationResult != RegionRegistrationResult.OK)
+            return regionRegistrationResult;
+
+        String ownerUUID = "00000000-0000-0000-0000-000000000000";
+        if (owner != null)
+            ownerUUID = owner.getUuidAsString();
 
         PreparedStatement statement = null;
         ResultSet resultSet = null;
@@ -102,16 +152,26 @@ public class RegionManager {
             if (resultSet.next())
                 regionId = resultSet.getInt(1);
             else
-                return -1;
+                return RegionRegistrationResult.Fail;
             if (members != null)
                 addMembership(regionId, members);
-            return regionId;
+            return RegionRegistrationResult.OK;
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             if (statement != null) statement.close();
             if (resultSet != null) resultSet.close();
         }
-        return -1;
+        return RegionRegistrationResult.Fail;
+    }
+
+    public static void main(String[] args) throws SQLException {
+        RegionManager regionManager = new RegionManager();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            BlockPos pos1 = new BlockPos(random.nextInt(100), random.nextInt(100), random.nextInt(100));
+            BlockPos pos2 = new BlockPos(random.nextInt(100), random.nextInt(100), random.nextInt(100));
+            regionManager.registerRegion("Region", pos1, pos2, null, null);
+        }
     }
 }

@@ -3,6 +3,7 @@ package me.uquark.realtyprotector.item;
 import me.uquark.quarkcore.item.AbstractItem;
 import me.uquark.realtyprotector.RealtyProtector;
 import me.uquark.realtyprotector.RealtyProtectorServer;
+import me.uquark.realtyprotector.data.RegionManager;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -28,6 +29,8 @@ public class ProtectionCursor extends AbstractItem {
 
     @Override
     public ActionResult useOnBlock(ItemUsageContext context) {
+        if (RealtyProtectorServer.INSTANCE == null)
+            return ActionResult.FAIL;
         if (context.getWorld().isClient || context.getPlayer() == null)
             return ActionResult.PASS;
         if (!playerTable.containsKey(context.getPlayer()))
@@ -50,32 +53,48 @@ public class ProtectionCursor extends AbstractItem {
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
         String regionName = "Region";
-        if (user.isSneaking()) {
+        if (user.isSneaking() && !world.isClient) {
             if (user.getMainHandStack().hasCustomName())
                 regionName = user.getMainHandStack().getName().asString();
-            if (registerRegion(user, regionName)) {
-                user.addChatMessage(new LiteralText("New region registered"), false);
-                user.getMainHandStack().decrement(1);
-                return TypedActionResult.success(user.getMainHandStack());
+            switch (registerRegion(user, regionName)) {
+                case OK:
+                    user.addChatMessage(new LiteralText("New region registered"), false);
+                    user.getMainHandStack().decrement(1);
+                    return TypedActionResult.success(user.getMainHandStack());
+                case TooBig:
+                    user.addChatMessage(new LiteralText("Selected region is too big (more than " + RegionManager.MAX_VOLUME + ")"), false);
+                    return TypedActionResult.fail(user.getMainHandStack());
+                case Overlap:
+                    user.addChatMessage(new LiteralText("Selected region overlaps with an existing one"), false);
+                    return TypedActionResult.fail(user.getMainHandStack());
+                case NotEnoughPoints:
+                    user.addChatMessage(new LiteralText("You must select 2 points to register region"), false);
+                    return TypedActionResult.fail(user.getMainHandStack());
+                case ClientIsNotEnabled:
+                    user.addChatMessage(new LiteralText("Region registration is available only on dedicated servers"), false);
+                    return TypedActionResult.fail(user.getMainHandStack());
+                case Fail:
+                    user.addChatMessage(new LiteralText("An unknown error has occurred while registering region"), false);
+                    return TypedActionResult.fail(user.getMainHandStack());
             }
         }
         return TypedActionResult.fail(user.getMainHandStack());
     }
 
-    private boolean registerRegion(PlayerEntity player, String name) {
+    private RegionManager.RegionRegistrationResult registerRegion(PlayerEntity player, String name) {
+        if (RealtyProtectorServer.INSTANCE == null)
+            return RegionManager.RegionRegistrationResult.ClientIsNotEnabled;
         if (playerTable.get(player) == null)
-            return false;
+            return RegionManager.RegionRegistrationResult.Fail;
         if (playerTable.get(player).size() < 2)
-            return false;
+            return RegionManager.RegionRegistrationResult.NotEnoughPoints;
         BlockPos pos1 = playerTable.get(player).get(0);
         BlockPos pos2 = playerTable.get(player).get(1);
         try {
-            if (RealtyProtectorServer.INSTANCE == null)
-                return false;
-            return (RealtyProtectorServer.INSTANCE.regionManager.addRegion(name, pos1, pos2, player, null) > 0);
+            return RealtyProtectorServer.INSTANCE.regionManager.registerRegion(name, pos1, pos2, player, null);
         } catch (SQLException e) {
             e.printStackTrace();
-            return false;
+            return RegionManager.RegionRegistrationResult.Fail;
         }
     }
 }
