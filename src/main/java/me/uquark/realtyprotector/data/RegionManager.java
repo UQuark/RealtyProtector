@@ -15,7 +15,7 @@ import java.util.Set;
 import java.util.UUID;
 
 public class RegionManager {
-    private final Connection connection = DatabaseProvider.getConnection("realtyprotector", "rp_user", "");
+    private final Connection connection = DatabaseProvider.getConnection("RealtyProtector" ,"storage", "rp_user", "");
     public static final int MAX_VOLUME = 250000;
 
     public enum RegionRegistrationResult {
