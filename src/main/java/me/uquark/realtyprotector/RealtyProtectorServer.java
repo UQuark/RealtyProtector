@@ -2,6 +2,8 @@ package me.uquark.realtyprotector;
 
 import me.uquark.realtyprotector.data.RegionManager;
 import net.fabricmc.api.DedicatedServerModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.minecraft.server.MinecraftServer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -20,7 +22,7 @@ public class RealtyProtectorServer implements DedicatedServerModInitializer {
         try {
             regionManager = new RegionManager();
         } catch (SQLException e) {
-            LOGGER.warn("Failed to establish SQL connection");
+            LOGGER.warn("Failed to establish DB connection");
             e.printStackTrace();
         } catch (IOException e) {
             LOGGER.warn("Failed to unpack DB sample");
