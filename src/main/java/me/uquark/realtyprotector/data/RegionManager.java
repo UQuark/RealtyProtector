@@ -5,6 +5,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -15,8 +16,12 @@ import java.util.Set;
 import java.util.UUID;
 
 public class RegionManager {
-    private final Connection connection = DatabaseProvider.getConnection("RealtyProtector" ,"storage", "rp_user", "");
+    private final Connection connection;
     public static final int MAX_VOLUME = 250000;
+    private static final String MOD_NAME = "RealtyProtector";
+    private static final String DB_NAME = "storage";
+    private static final String DB_USER = "rp_user";
+    private static final String DB_PASS = "";
 
     public enum RegionRegistrationResult {
         OK,
@@ -51,7 +56,9 @@ public class RegionManager {
         }
     }
 
-    public RegionManager() throws SQLException {
+    public RegionManager() throws SQLException, IOException {
+        SetupManager.ensureValidDBPresent(MOD_NAME, DB_NAME);
+        connection = DatabaseProvider.getConnection(MOD_NAME, DB_NAME, DB_USER, DB_PASS);
     }
 
     private boolean isMember(int regionId, String playerUUID) throws SQLException {
@@ -277,7 +284,7 @@ public class RegionManager {
         return RegionDeletionResult.Fail;
     }
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException, IOException {
         RegionManager regionManager = new RegionManager();
         Random random = new Random();
         for (int i = 0; i < 1000; i++) {
