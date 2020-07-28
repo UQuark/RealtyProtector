@@ -27,8 +27,6 @@ dependencies {
 
 	modImplementation "me.uquark:quarkcore:0.6.1"
 
-	include "com.h2database:h2:1.4.200"
-	modImplementation "com.h2database:h2:1.4.200"
 	// PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
 	// You may need to force-disable transitiveness on them.
 }
