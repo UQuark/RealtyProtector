@@ -4,6 +4,7 @@ import me.uquark.quarkcore.item.AbstractItem;
 import me.uquark.realtyprotector.RealtyProtector;
 import me.uquark.realtyprotector.RealtyProtectorServer;
 import me.uquark.realtyprotector.data.RegionManager;
+import me.uquark.realtyprotector.util.LangUtils;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
@@ -76,7 +77,7 @@ public class ProtectionCursor extends AbstractItem {
 
     @Override
     public TypedActionResult<ItemStack> use(World world, PlayerEntity user, Hand hand) {
-        String regionName = "Unnamed";
+        String regionName = LangUtils.makePossessionForm(user.getEntityName());
         if (user.isSneaking() && !world.isClient) {
             if (user.getMainHandStack().hasCustomName())
                 regionName = user.getMainHandStack().getName().asString();

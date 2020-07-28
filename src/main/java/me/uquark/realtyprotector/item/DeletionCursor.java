@@ -4,6 +4,7 @@ import me.uquark.quarkcore.item.AbstractItem;
 import me.uquark.realtyprotector.RealtyProtector;
 import me.uquark.realtyprotector.RealtyProtectorServer;
 import me.uquark.realtyprotector.data.RegionManager;
+import me.uquark.realtyprotector.util.LangUtils;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
@@ -35,7 +36,7 @@ public class DeletionCursor extends AbstractItem {
             // do nothing
         }
         if (regionInfo == null)
-            regionInfo = new RegionManager.RegionInfo(-1, null, "Unnamed", null, null);
+            regionInfo = new RegionManager.RegionInfo(-1, null, LangUtils.makePossessionForm(player.getEntityName()), null, null);
         switch (deleteRegion(context.getBlockPos(), player)) {
             case OK:
                 player.sendMessage(new TranslatableText("message.realtyprotector.region_removed", regionInfo.name), false);
