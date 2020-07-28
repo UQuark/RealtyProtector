@@ -110,7 +110,7 @@ public class RegionManager {
 
     public boolean canPlayerModifyAt(PlayerEntity player, BlockPos pos) throws SQLException {
         final String QUERY = "SELECT id, CAST(\"ownerUUID\" as char(36)) FROM region WHERE (? between x1 and x2) and (? between y1 and y2) and (? between z1 and z2)";
-        if (player.allowsPermissionLevel(3))
+        if (player.hasPermissionLevel(3))
             return true;
         PreparedStatement statement = null;
         ResultSet resultSet = null;
@@ -257,7 +257,7 @@ public class RegionManager {
             if (resultSet.next()) {
                 int id = resultSet.getInt(1);
                 String uuid = resultSet.getString(2);
-                if (player.getUuidAsString().equals(uuid) || player.allowsPermissionLevel(3)) {
+                if (player.getUuidAsString().equals(uuid) || player.hasPermissionLevel(3)) {
                     resultSet.close();
                     statement.close();
                     statement = connection.prepareStatement(DELETE_QUERY);

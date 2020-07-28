@@ -10,7 +10,6 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroup;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -46,10 +45,10 @@ public class ProtectionCursor extends AbstractItem {
             parameters.positions.clear();
         switch (parameters.positions.size()) {
             case 0:
-                context.getPlayer().addChatMessage(new TranslatableText("message.realtyprotector.first_position_set"), false);
+                context.getPlayer().sendMessage(new TranslatableText("message.realtyprotector.first_position_set"), false);
                 break;
             case 1:
-                context.getPlayer().addChatMessage(new TranslatableText("message.realtyprotector.second_position_set"), false);
+                context.getPlayer().sendMessage(new TranslatableText("message.realtyprotector.second_position_set"), false);
                 break;
         }
         parameters.positions.add(context.getBlockPos());
@@ -71,7 +70,7 @@ public class ProtectionCursor extends AbstractItem {
             playerTable.put(playerAttacker, new ProtectionCursorParameters());
         ProtectionCursorParameters parameters = playerTable.get(playerAttacker);
         if (parameters.members.add(playerTarget))
-            playerAttacker.addChatMessage(new TranslatableText("message.realtyprotector.player_added", target.getName().asString()), false);
+            playerAttacker.sendMessage(new TranslatableText("message.realtyprotector.player_added", target.getName().asString()), false);
         return super.postHit(stack, target, attacker);
     }
 
@@ -83,24 +82,24 @@ public class ProtectionCursor extends AbstractItem {
                 regionName = user.getMainHandStack().getName().asString();
             switch (registerRegion(user, regionName)) {
                 case OK:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.region_registered", regionName), false);
+                    user.sendMessage(new TranslatableText("message.realtyprotector.region_registered", regionName), false);
                     user.getMainHandStack().decrement(1);
                     playerTable.remove(user);
                     return TypedActionResult.success(user.getMainHandStack());
                 case TooBig:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.too_big_region", RegionManager.MAX_VOLUME), false);
+                    user.sendMessage(new TranslatableText("message.realtyprotector.too_big_region", RegionManager.MAX_VOLUME), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case Overlap:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.regions_overlap"), false);
+                    user.sendMessage(new TranslatableText("message.realtyprotector.regions_overlap"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case NotEnoughPoints:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.not_enough_points"), false);
+                    user.sendMessage(new TranslatableText("message.realtyprotector.not_enough_points"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case ClientIsNotEnabled:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.client_is_not_enabled"), false);
+                    user.sendMessage(new TranslatableText("message.realtyprotector.client_is_not_enabled"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
                 case Fail:
-                    user.addChatMessage(new TranslatableText("message.realtyprotector.unknown_error"), false);
+                    user.sendMessage(new TranslatableText("message.realtyprotector.unknown_error"), false);
                     return TypedActionResult.fail(user.getMainHandStack());
             }
         }
