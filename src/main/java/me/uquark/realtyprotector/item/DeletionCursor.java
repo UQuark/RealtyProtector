@@ -38,7 +38,7 @@ public class DeletionCursor extends AbstractItem {
             regionInfo = new RegionManager.RegionInfo(-1, null, "Unnamed", null, null);
         switch (deleteRegion(context.getBlockPos(), player)) {
             case OK:
-                player.addChatMessage(new TranslatableText("message.realtyprotector.region_removed", regionInfo.name), false);
+                player.sendMessage(new TranslatableText("message.realtyprotector.region_removed", regionInfo.name), false);
                 if (!player.isCreative()) {
                     ItemStack stack = new ItemStack(Items.PROTECTION_CURSOR, 1);
                     stack.setCustomName(new LiteralText(regionInfo.name));
@@ -46,16 +46,16 @@ public class DeletionCursor extends AbstractItem {
                 }
                 return ActionResult.SUCCESS;
             case NoRegion:
-                player.addChatMessage(new TranslatableText("message.realtyprotector.no_region"), false);
+                player.sendMessage(new TranslatableText("message.realtyprotector.no_region"), false);
                 return ActionResult.FAIL;
             case NotOwner:
-                player.addChatMessage(new TranslatableText("message.realtyprotector.not_owner"), false);
+                player.sendMessage(new TranslatableText("message.realtyprotector.not_owner"), false);
                 return ActionResult.FAIL;
             case ClientIsNotEnabled:
-                player.addChatMessage(new TranslatableText("message.realtyprotector.client_is_not_enabled"), false);
+                player.sendMessage(new TranslatableText("message.realtyprotector.client_is_not_enabled"), false);
                 return ActionResult.FAIL;
             case Fail:
-                player.addChatMessage(new TranslatableText("message.realtyprotector.unknown_error"), false);
+                player.sendMessage(new TranslatableText("message.realtyprotector.unknown_error"), false);
                 return ActionResult.FAIL;
         }
         return ActionResult.FAIL;

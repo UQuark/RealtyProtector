@@ -25,7 +25,7 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
-	modImplementation "me.uquark:quarkcore:0.3.1"
+	modImplementation "me.uquark:quarkcore:0.6.0"
 
 	include "com.h2database:h2:1.4.200"
 	modImplementation "com.h2database:h2:1.4.200"

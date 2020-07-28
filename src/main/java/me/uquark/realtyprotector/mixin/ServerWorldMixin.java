@@ -3,11 +3,7 @@ package me.uquark.realtyprotector.mixin;
 import me.uquark.realtyprotector.RealtyProtectorServer;
 import me.uquark.realtyprotector.data.RegionManager;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.item.BlockItem;
-import net.minecraft.server.PlayerManager;
-import net.minecraft.server.network.ServerPlayerInteractionManager;
 import net.minecraft.server.world.ServerWorld;
-import net.minecraft.text.LiteralText;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.math.BlockPos;
 import org.spongepowered.asm.mixin.Mixin;
@@ -36,7 +32,7 @@ public abstract class ServerWorldMixin {
         if (canModify)
             info.setReturnValue(true);
         else {
-            player.addChatMessage(new TranslatableText("message.realtyprotector.region_protected"), false);
+            player.sendMessage(new TranslatableText("message.realtyprotector.region_protected"), false);
             info.setReturnValue(false);
         }
     }
